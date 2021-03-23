@@ -2,15 +2,16 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"strings"
 
 	"cloud.google.com/go/bigquery"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/ssm"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
@@ -19,23 +20,46 @@ var client *bigquery.Client
 var ctx context.Context
 
 func init() {
-	svc := s3.New(session.New())
-	input := &s3.GetObjectInput{
-		Bucket: aws.String("jsonfiles312021"),
-		Key:    aws.String("Project-8a8c500b8c6d.json"),
-	}
-	result, _ := svc.GetObject(input)
-	defer result.Body.Close()
-	body, _ := ioutil.ReadAll(result.Body)
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+		Config: aws.Config{
+			Region: aws.String("us-east-1"),
+		},
+	}))
 
+	svc := ssm.New(sess)
+
+	paramsFromAWS := paramsByPath(svc)
+	paramsByte, _ := json.Marshal(paramsFromAWS)
 	ctx = context.Background()
 
 	var err error
-	client, err = bigquery.NewClient(ctx, "first-vision-305321", option.WithCredentialsJSON(body))
+	client, err = bigquery.NewClient(ctx, "first-vision-305321", option.WithCredentialsJSON(paramsByte))
 	if err != nil {
 		log.Fatalf("bigquery.NewClient: %v", err)
 	}
 
+}
+
+func paramsByPath(svc *ssm.SSM) map[string]string {
+	pathInput := &ssm.GetParametersByPathInput{
+		Path: aws.String("/bqconfig"),
+	}
+
+	res, err := svc.GetParametersByPath(pathInput)
+	if err != nil {
+		log.Println(err)
+	}
+
+	params := make(map[string]string)
+
+	for _, param := range res.Parameters {
+		name := strings.Replace(*param.Name, "/bqconfig/", "", -1)
+		value := *param.Value
+		params[name] = value
+	}
+
+	return params
 }
 
 func main() {
@@ -43,22 +67,21 @@ func main() {
 	defer client.Close()
 }
 
-func handler() {
+func handler() ([][]bigquery.Value, error) {
 	companyData, err := queryWithNamedParams()
 	if err != nil {
 		fmt.Println(err)
 	}
-	defer client.Close()
-	fmt.Println(companyData)
+	return companyData, nil
 }
 
-type CompanyRowData struct {
-	Company_name bigquery.NullString  `json:"companyName"`
-	Measure_tag  bigquery.NullString  `json:"measureTag"`
-	Value        bigquery.NullFloat64 `json:"value"`
-	Units        bigquery.NullString  `json:"units"`
-	Fiscal_year  bigquery.NullInt64   `json:"fiscalYear"`
-}
+// type CompanyRowData struct {
+// 	Company_name bigquery.NullString  `json:"companyName"`
+// 	Measure_tag  bigquery.NullString  `json:"measureTag"`
+// 	Value        bigquery.NullFloat64 `json:"value"`
+// 	Units        bigquery.NullString  `json:"units"`
+// 	Fiscal_year  bigquery.NullInt64   `json:"fiscalYear"`
+// }
 
 func queryWithNamedParams() ([][]bigquery.Value, error) {
 	// projectID := "my-project-id"

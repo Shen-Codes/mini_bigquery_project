@@ -1,0 +1,4 @@
+GOARCH=amd64 GOOS=linux go build main.go
+build-lambda-zip.exe -output main.zip main
+aws lambda update-function-code --function-name bq_company_financial_search --zip-file fileb://main.zip
+aws lambda create-function --function-name bqcofinsearch
