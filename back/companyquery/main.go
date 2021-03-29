@@ -3,9 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"log"
-	"strconv"
 	"strings"
 
 	"cloud.google.com/go/bigquery"
@@ -84,30 +83,46 @@ func handler(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse,
 }
 
 func queryWithNamedParams(queryParams map[string]string) ([][]bigquery.Value, error) {
-	companyName := queryParams["companyname"]
-	fiscalYear, _ := strconv.ParseInt(queryParams["fiscalyear"], 10, 64)
-	fmt.Println(companyName, fiscalYear)
+	fiscalYear := queryParams["fiscal_year"]
+	min := queryParams["min"]
+	max := queryParams["max"]
+	var measureTag string
+	switch mt := queryParams["measure_tag"]; mt {
+	case "Revenue":
+		measureTag = `"Revenues", "SalesRevenueGoodsNet", "SalesRevenueNet", "SalesRevenueServicesNet"`
+	case "Cost of Goods Sold":
+		measureTag = `"CostOfGoodsAndServicesSold", "CostOfGoodsSold", "CostOfRevenue", "CostOfServices", "CostsAndExpenses", "SellingExpense", "OperatingExpenses"`
+	case "Net Income":
+		measureTag = `"NetIncomeLoss"`
+	default:
+		serverError(errors.New("no measure tag selected"))
+	}
+
 	q := client.Query(
-		`SELECT company_name, measure_tag, value, units, fiscal_year
+		`SELECT company_name, measure_tag, value, units, fiscal_year, period_end_date
 		FROM ` + "`bigquery-public-data.sec_quarterly_financials.quick_summary`" + `
-		WHERE company_name = @company_name
-		AND form = @form
-		AND fiscal_year = @fiscal_year
-		AND period_end_date = @period_end_date
+		WHERE fiscal_year = @fiscal_year
+		AND form = "10-K"
+		AND value BETWEEN @min and @max
+		AND measure_tag IN (@measure_tag)
 		ORDER BY measure_tag ASC
 		LIMIT 5;`)
 	q.Parameters = []bigquery.QueryParameter{
 		{
-			Name:  "company_name",
-			Value: companyName,
-		},
-		{
-			Name:  "form",
-			Value: "10-K",
-		},
-		{
 			Name:  "fiscal_year",
 			Value: fiscalYear,
+		},
+		{
+			Name:  "min",
+			Value: min,
+		},
+		{
+			Name:  "max",
+			Value: max,
+		},
+		{
+			Name:  "measure_tag",
+			Value: measureTag,
 		},
 		{
 			Name:  "period_end_date",
