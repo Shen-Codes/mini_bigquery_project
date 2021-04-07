@@ -3,7 +3,7 @@ import React from 'react'
 const AmountSlider = (props) => {
 
     const handleChange = e => {
-        e.preventdefault();
+        e.preventDefault();
         props.setState(prev => ({
             ...prev,
             [e.target.name]: e.target.value
@@ -12,7 +12,7 @@ const AmountSlider = (props) => {
 
     return (
         <div>
-            <label for="min">Min amount</label>
+            <label htmlFor="min">Min amount</label>
             <input 
                 type="number" 
                 id="min" 
@@ -22,7 +22,7 @@ const AmountSlider = (props) => {
                 max="99999999999"
                 onChange={handleChange}
             />
-            <label for="max">Max amount</label>
+            <label htmlFor="max">Max amount</label>
             <input 
                 type="number" 
                 id="max" 

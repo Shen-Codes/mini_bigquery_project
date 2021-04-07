@@ -5,19 +5,19 @@ const AcctToSearch = (props) => {
     const handleSelect = e => {
         props.setState(prev=> ({
             ...prev,
-            acct: e.target.value
+            account: e.target.value
         }))
     }
 
     return (
         <div>
-            <input list="account-list" type="text">
+            <label htmlFor="accounts">Account to Search</label>
+            <input list="account-list" type="text" id="accounts" onChange={handleSelect}/>
                 <datalist id="account-list">
-                    <option value="Revenue" onSelect={handleSelect}/>
-                    <option value="Cost of Goods Sold" onSelect={handleSelect}/>
-                    <option value="Net Income or Loss" onSelect={handleSelect}/>
-                </datalist>
-            </input>
+                    <option value="Revenue" />
+                    <option value="Cost of Goods Sold" />
+                    <option value="Net Income or Loss" />
+                </datalist>      
         </div>
     )
 }

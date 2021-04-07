@@ -15,13 +15,14 @@ function App() {
 
     
   const fetchData = async () => {
-    const {account, min, max, year} = params;
-    const url = `https://something.com/account?=${account}&min=${min}&max=${max}&year=${year}`;
-    await fetch(url)
-      .then(response => response.json)
-      .then(response => {
-        setList({list: response})
-      })
+    // const {account, min, max, year} = params;
+    // const url = `https://something.com/account?=${account}&min=${min}&max=${max}&year=${year}`;
+    // await fetch(url)
+    //   .then(response => response.json)
+    //   .then(response => {
+    //     setList({list: response})
+    //   })
+    console.log(params)
   }
 
   return (

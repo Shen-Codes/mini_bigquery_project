@@ -2,6 +2,7 @@ import React from 'react'
 import AcctToSearch from './AcctToSearch'
 import AmountSlider from './AmountSlider'
 import Year from './Year'
+import "./SearchBar.css"
 
 const SearchBar = (props) => {
     return (

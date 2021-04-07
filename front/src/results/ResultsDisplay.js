@@ -1,6 +1,8 @@
 import React from 'react';
 
-const ResultsDisplay = () => {
+const ResultsDisplay = (props) => {
+    const {list} = props
+
     return (
         <div>
             
