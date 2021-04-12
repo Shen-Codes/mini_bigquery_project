@@ -1,22 +1,25 @@
 import React from 'react';
 import TableItem from './TableItem';
+import './ResultsDisplay.css';
 
 const ResultsDisplay = (props) => {
     const {list} = props
 
     return (
-        <div>
+        <div id="results-display">
             <table>
                 <thead>
                     <tr>
                         <th>Company</th>
-                        <th>{list[0].measureTag}</th>
+                        <th>{list && list[0].measureTag}</th>
                         <th>Ending Period</th>
                     </tr>
                 </thead>
                 <tbody>
                     {list && list.map((item, idx) => {
-                        <TableItem item={item} idx={idx} />
+                        return(
+                            <TableItem item={item} idx={idx} />
+                        )
                     })}
                 </tbody>
             </table>

@@ -10,7 +10,7 @@ const TableItem = (props) => {
         <>
             <tr key={idx}>
                 <td>{companyName}</td>
-                <td>{value}</td>
+                <td>{value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</td>
                 <td>{endPeriod}</td>
             </tr>
         </>
