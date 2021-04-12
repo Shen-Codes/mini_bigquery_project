@@ -77,10 +77,25 @@ func handler(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse,
 	}
 	body, _ := json.Marshal(companyData)
 
-	return events.APIGatewayProxyResponse{
+	response := events.APIGatewayProxyResponse{
 		StatusCode: 200,
-		Body:       string(body),
-	}, nil
+		Headers: map[string]string{
+			"Content-Type":                 "application/json",
+			"Access-Control-Allow-Origin":  "*",
+			"Access-Control-Allow-Methods": "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+			"Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+		},
+		Body: string(body),
+	}
+
+	response.Headers = make(map[string]string)
+	response.Headers["Content-Type"] = "application/json"
+	response.Headers["Access-Control-Allow-Origin"] = "*"
+	response.Headers["Access-Control-Allow-Methods"] = "DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT"
+	response.Headers["Access-Control-Allow-Headers"] = "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token"
+	response.Headers["Status-Code"] = "200"
+
+	return response, nil
 }
 
 type BqStruct struct {
