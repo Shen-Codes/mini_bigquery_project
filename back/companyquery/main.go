@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
 	"cloud.google.com/go/bigquery"
@@ -82,31 +83,31 @@ func handler(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse,
 	}, nil
 }
 
-func queryWithNamedParams(queryParams map[string]string) ([][]bigquery.Value, error) {
-	fiscalYear := queryParams["fiscal_year"]
-	min := queryParams["min"]
-	max := queryParams["max"]
-	var measureTag string
-	switch mt := queryParams["measure_tag"]; mt {
-	case "Revenue":
-		measureTag = `"Revenues", "SalesRevenueGoodsNet", "SalesRevenueNet", "SalesRevenueServicesNet"`
-	case "Cost of Goods Sold":
-		measureTag = `"CostOfGoodsAndServicesSold", "CostOfGoodsSold", "CostOfRevenue", "CostOfServices", "CostsAndExpenses", "SellingExpense", "OperatingExpenses"`
-	case "Net Income":
-		measureTag = `"NetIncomeLoss"`
-	default:
-		serverError(errors.New("no measure tag selected"))
-	}
+type BqStruct struct {
+	Company_name    string  `json:"companyName"`
+	Measure_Tag     string  `json:"measureTag"`
+	Value           float64 `json:"value"`
+	Units           string  `json:"units"`
+	Period_end_date string  `json:"periodEndDate"`
+}
+
+func queryWithNamedParams(queryParams map[string]string) ([]BqStruct, error) {
+	fiscalYear, _ := strconv.Atoi(queryParams["fiscal_year"])
+	min, _ := strconv.ParseFloat(queryParams["min"], 32)
+	max, _ := strconv.ParseFloat(queryParams["max"], 32)
+	measureTag := queryParams["measure_tag"]
+
+	fmt.Println(queryParams)
 
 	q := client.Query(
-		`SELECT company_name, measure_tag, value, units, fiscal_year, period_end_date
+		`SELECT company_name, measure_tag, value, units, period_end_date
 		FROM ` + "`bigquery-public-data.sec_quarterly_financials.quick_summary`" + `
 		WHERE fiscal_year = @fiscal_year
 		AND form = "10-K"
 		AND value BETWEEN @min and @max
 		AND measure_tag IN (@measure_tag)
-		ORDER BY measure_tag ASC
-		LIMIT 5;`)
+		ORDER BY company_name ASC
+		LIMIT 50;`)
 	q.Parameters = []bigquery.QueryParameter{
 		{
 			Name:  "fiscal_year",
@@ -124,10 +125,6 @@ func queryWithNamedParams(queryParams map[string]string) ([][]bigquery.Value, er
 			Name:  "measure_tag",
 			Value: measureTag,
 		},
-		{
-			Name:  "period_end_date",
-			Value: "20170531",
-		},
 	}
 	// Run the query and print results when the query job is completed.
 	job, err := q.Run(ctx)
@@ -142,9 +139,9 @@ func queryWithNamedParams(queryParams map[string]string) ([][]bigquery.Value, er
 		return nil, err
 	}
 	it, err := job.Read(ctx)
-	var rows [][]bigquery.Value
+	var rows []BqStruct
 	for {
-		var row []bigquery.Value
+		var row BqStruct
 		err := it.Next(&row)
 		if err == iterator.Done {
 			break
